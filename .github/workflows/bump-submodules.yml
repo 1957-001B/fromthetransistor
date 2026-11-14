@@ -23,6 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Otherwise checkout stores GITHUB_TOKEN as an auth header for all
+          # of github.com, git sends it instead of SUBMODULE_TOKEN, and the
+          # private armcore clone gets a 403.
+          persist-credentials: false
 
       - name: Update submodules to latest
         env:
@@ -36,6 +41,8 @@ jobs:
           git submodule update --init --remote
 
       - name: Commit and push if changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet; then
             echo "Submodules already up to date"
@@ -44,4 +51,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "bump submodules"
-          git push
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"
