@@ -1,0 +1,47 @@
+# Move every submodule to the latest commit on its default branch, and
+# commit the bump if anything changed.
+#
+# Runs hourly, by hand (Actions tab -> Run workflow), or instantly when
+# another repo sends a `bump` repository_dispatch event.
+#
+# armcore is private, so this needs a secret SUBMODULE_TOKEN: a fine-grained
+# personal access token with read-only "Contents" access to armcore.
+name: bump submodules
+
+on:
+  schedule:
+    - cron: "17 * * * *" # hourly, off the hour when GitHub is busiest
+  workflow_dispatch:
+  repository_dispatch:
+    types: [bump]
+
+permissions:
+  contents: write # to push the bump commit with GITHUB_TOKEN
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update submodules to latest
+        env:
+          TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
+        run: |
+          # Only armcore (private, SSH URL) needs the token. Rewrite just its
+          # URL, so the push below still uses GITHUB_TOKEN.
+          git config --global \
+            url."https://x-access-token:${TOKEN}@github.com/1957-001B/armcore.git".insteadOf \
+            "git@github.com:1957-001B/armcore.git"
+          git submodule update --init --remote
+
+      - name: Commit and push if changed
+        run: |
+          if git diff --quiet; then
+            echo "Submodules already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "bump submodules"
+          git push
