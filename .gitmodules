@@ -1,0 +1,6 @@
+[submodule "section3-processor/armcore"]
+	path = section3-processor/armcore
+	url = git@github.com:1957-001B/armcore.git
+[submodule "section3-processor/armasm"]
+	path = section3-processor/armasm
+	url = https://github.com/1957-001B/armasm.git
